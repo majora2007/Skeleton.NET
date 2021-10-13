@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Skeleton.Entities;
+using Skeleton.Entities.Interfaces;
 
 namespace Skeleton.Data
 {
@@ -9,8 +12,14 @@ namespace Skeleton.Data
         IdentityUserClaim<int>, AppUserRole, IdentityUserLogin<int>,
         IdentityRoleClaim<int>, IdentityUserToken<int>>
     {
-
         public DbSet<AppUser> AppUser { get; set; }
+    
+        public DataContext(DbContextOptions options) : base(options)
+        {
+            ChangeTracker.Tracked += OnEntityTracked;
+            ChangeTracker.StateChanged += OnEntityStateChanged;
+        }
+       
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -30,6 +39,20 @@ namespace Skeleton.Data
                 .IsRequired();
         }
 
-        
+        void OnEntityTracked(object sender, EntityTrackedEventArgs e)
+        {
+            if (!e.FromQuery && e.Entry.State == EntityState.Added && e.Entry.Entity is IHasDate entity)
+            {
+                entity.Created = DateTime.Now;
+                entity.LastModified = DateTime.Now;
+            }
+
+        }
+
+        void OnEntityStateChanged(object sender, EntityStateChangedEventArgs e)
+        {
+            if (e.NewState == EntityState.Modified && e.Entry.Entity is IHasDate entity)
+                entity.LastModified = DateTime.Now;
+        }
     }
 }
