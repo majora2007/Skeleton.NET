@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
@@ -44,7 +45,45 @@ namespace Skeleton
             });
             services.AddCors();
             services.AddIdentityServices(_config);
-            services.AddSwaggerGen(c => { c.SwaggerDoc("v1", new OpenApiInfo {Title = "Skeleton", Version = "v1"}); });
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "Skeleton API", Version = "v1" });
+
+                c.SwaggerDoc("Skeleton API", new OpenApiInfo()
+                {
+                    Description = "Skeleton Project Description",
+                    Title = "Skeleton API",
+                    Version = "v1",
+                });
+
+                var filePath = Path.Combine(AppContext.BaseDirectory, "Skeleton.xml");
+                c.IncludeXmlComments(filePath);
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme {
+                    In = ParameterLocation.Header,
+                    Description = "Please insert JWT with Bearer into field",
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey
+                });
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+
+                c.AddServer(new OpenApiServer()
+                {
+                    Description = "Local Server",
+                    Url = "http://localhost:5000/",
+                });
+            });
             
             services.AddResponseCompression(options =>
             {
